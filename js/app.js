@@ -142,6 +142,35 @@ function fmtPeriodo(per){
   return MESES_ABR[Number(m)-1]+"-"+y.slice(-2);
 }
 
+/* Helpers para causa–efecto */
+function findKPIByName(name){
+  for(const p of DATA.perspectivas){
+    const f=p.kpis.find(k=>k.n===name);
+    if(f) return {k:f,pers:p};
+  }
+  return null;
+}
+function getKPIStateForPeriod(name,periodo){
+  const ref=findKPIByName(name);
+  if(!ref) return null;
+  const h=ref.k.hist[periodo];
+  return state(ref.k.pol,h.a,h.meta,h.warn);
+}
+function stateColor(st){
+  if(st==="good") return "#16c172";
+  if(st==="warn") return "#ffbf3c";
+  return "#ff5d5d";
+}
+function aggregateState(drivers,periodo){
+  const sts = drivers
+    .map(d=>getKPIStateForPeriod(d.kpi,periodo))
+    .filter(Boolean);
+  if(!sts.length) return "warn";
+  if(sts.some(s=>s==="bad")) return "bad";
+  if(sts.some(s=>s==="warn")) return "warn";
+  return "good";
+}
+
 /* ======================= DOM ELEMENTOS PRINCIPALES ======================= */
 const selPeriodo=$("#selPeriodo");
 const summary=$("#summary");
@@ -291,7 +320,6 @@ function renderSparkBig(k){
   const y=v=> (h-padB) - ((v-min)/(max-min || 1))*(h-padT-padB);
   const step=(w-padL-padR)/(k.s.length-1);
 
-  /* líneas de fondo */
   for(let i=0;i<4;i++){
     const y0=padT+i*((h-padT-padB)/3);
     const l=document.createElementNS("http://www.w3.org/2000/svg","line");
@@ -304,7 +332,6 @@ function renderSparkBig(k){
     dlgSpark.appendChild(l);
   }
 
-  /* meta y umbral de advertencia según un período de ejemplo */
   const ejemploHist = k.hist[DATA.periodosSelect[0]];
   const meta=ejemploHist.meta;
   const warn=ejemploHist.warn;
@@ -323,7 +350,6 @@ function renderSparkBig(k){
   dlgSpark.appendChild(mkLine(meta,"#16c172"));
   dlgSpark.appendChild(mkLine(warn,"#ffbf3c"));
 
-  /* eje Y: min y max */
   const yVals=[max,min];
   yVals.forEach((val,idx)=>{
     const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
@@ -336,7 +362,6 @@ function renderSparkBig(k){
     dlgSpark.appendChild(txt);
   });
 
-  /* serie */
   let d=`M ${padL} ${y(k.s[0]).toFixed(2)} `;
   k.s.forEach((v,i)=> d+=`L ${(padL+i*step).toFixed(2)} ${y(v).toFixed(2)} `);
   const path=document.createElementNS("http://www.w3.org/2000/svg","path");
@@ -346,7 +371,6 @@ function renderSparkBig(k){
   path.setAttribute("stroke-width","2.2");
   dlgSpark.appendChild(path);
 
-  /* eje X: meses (24) etiquetando cada 2 meses */
   PERIODOS_ALL.forEach((per,idx)=>{
     const x=padL+idx*step;
     const tick=document.createElementNS("http://www.w3.org/2000/svg","line");
@@ -388,7 +412,6 @@ function renderBreakdown(k,periodo){
   });
 }
 
-/* Tabla de meses (últimos 12) */
 function renderMonthTable(k){
   dlgMonths.innerHTML="";
   const table=document.createElement("table");
@@ -420,25 +443,73 @@ function renderMonthTable(k){
 }
 
 /* ======================= MAPA CAUSA-EFECTO ENTRE KPIs ======================= */
+/* Ahora cada driver tiene referencia al KPI real y el color refleja su estado.  */
+/* Además se agregan relaciones intra-perspectiva en la lista textual.          */
 
 const REL_EDGES = [
   {
     from:"APR",
     to:"PRO",
-    pos:["Horas capacitación","Ideas de mejora"],
-    neg:["Cobertura de roles baja"]
+    intra:false,
+    pos:[
+      {label:"Horas capacitación", kpi:"Horas de capacitación / persona"},
+      {label:"Ideas de mejora",   kpi:"Ideas de mejora implementadas"}
+    ],
+    neg:[
+      {label:"Cobertura de roles baja", kpi:"Cobertura de roles críticos"}
+    ]
   },
   {
     from:"PRO",
     to:"CLI",
-    pos:["OEE","MTBF"],
-    neg:["Scrap","MTTR"]
+    intra:false,
+    pos:[
+      {label:"OEE",  kpi:"OEE"},
+      {label:"MTBF", kpi:"MTBF"}
+    ],
+    neg:[
+      {label:"Scrap", kpi:"Scrap"},
+      {label:"MTTR", kpi:"MTTR"}
+    ]
   },
   {
     from:"CLI",
     to:"FIN",
-    pos:["OTIF","NPS"],
-    neg:["Reclamos","Reacuerdos"]
+    intra:false,
+    pos:[
+      {label:"OTIF", kpi:"OTIF"},
+      {label:"NPS",  kpi:"NPS"}
+    ],
+    neg:[
+      {label:"Reclamos",  kpi:"Reclamos por mil órdenes"},
+      {label:"Reacuerdos",kpi:"Tasa de reacuerdos"}
+    ]
+  },
+  /* Relaciones intra-perspectiva (solo se muestran en la lista textual) */
+  {
+    from:"PRO",
+    to:"PRO",
+    intra:true,
+    pos:[
+      {label:"OEE alto reduce Scrap", kpi:"OEE"},
+      {label:"Scrap controlado mejora MTBF", kpi:"Scrap"}
+    ],
+    neg:[
+      {label:"MTTR elevado tensiona el OEE", kpi:"MTTR"}
+    ]
+  },
+  {
+    from:"CLI",
+    to:"CLI",
+    intra:true,
+    pos:[
+      {label:"OTIF y NPS fortalecen fidelidad", kpi:"OTIF"},
+      {label:"NPS alto reduce reclamos", kpi:"NPS"}
+    ],
+    neg:[
+      {label:"Reclamos recurrentes erosionan NPS", kpi:"Reclamos por mil órdenes"},
+      {label:"Reacuerdos afectan percepción de servicio", kpi:"Tasa de reacuerdos"}
+    ]
   }
 ];
 
@@ -518,13 +589,13 @@ function drawMap(periodo){
   defs.appendChild(m);
   svg.appendChild(defs);
 
-  function arrow(from,to,cls,edge){
+  function arrow(from,to,edge){
     const line=document.createElementNS("http://www.w3.org/2000/svg","line");
     line.setAttribute("x1",from.x+from.w);
     line.setAttribute("y1",from.y+from.h/2);
     line.setAttribute("x2",to.x);
     line.setAttribute("y2",to.y+to.h/2);
-    line.setAttribute("stroke",cls==="good"?"#16c172":(cls==="warn"?"#ffbf3c":"#ff5d5d"));
+    line.setAttribute("stroke","#5aa9ff");
     line.setAttribute("stroke-width","2");
     line.setAttribute("marker-end","url(#arr)");
     g.appendChild(line);
@@ -532,22 +603,25 @@ function drawMap(periodo){
     const mx=(from.x+from.w+to.x)/2;
     const my=(from.y+from.h/2+to.y+to.h/2)/2;
 
+    const stPos=aggregateState(edge.pos,periodo);
+    const stNeg=aggregateState(edge.neg,periodo);
+
     const tPos=document.createElementNS("http://www.w3.org/2000/svg","text");
     tPos.setAttribute("x",mx);
     tPos.setAttribute("y",my-10);
     tPos.setAttribute("text-anchor","middle");
-    tPos.setAttribute("fill","#16c172");
+    tPos.setAttribute("fill",stateColor(stPos));
     tPos.setAttribute("font-size","9.5");
-    tPos.textContent="+ "+edge.pos.join(", ");
+    tPos.textContent="+ "+edge.pos.map(d=>d.label).join(", ");
     g.appendChild(tPos);
 
     const tNeg=document.createElementNS("http://www.w3.org/2000/svg","text");
     tNeg.setAttribute("x",mx);
     tNeg.setAttribute("y",my+14);
     tNeg.setAttribute("text-anchor","middle");
-    tNeg.setAttribute("fill","#ff5d5d");
+    tNeg.setAttribute("fill",stateColor(stNeg));
     tNeg.setAttribute("font-size","9.5");
-    tNeg.textContent="- "+edge.neg.join(", ");
+    tNeg.textContent="- "+edge.neg.map(d=>d.label).join(", ");
     g.appendChild(tNeg);
   }
 
@@ -563,14 +637,14 @@ function drawMap(periodo){
 
   const nodeById=id=>nodes.find(n=>n.id===id);
 
-  REL_EDGES.forEach(e=>{
+  /* Solo dibujamos flechas para relaciones entre perspectivas (no intra) */
+  REL_EDGES.filter(e=>!e.intra).forEach(e=>{
     const from=nodeById(e.from);
     const to=nodeById(e.to);
-    const cls = e.from==="APR"?sAPR:(e.from==="PRO"?sPRO:sCLI);
-    arrow(from,to,cls,e);
+    arrow(from,to,e);
   });
 
-  /* Lista textual de relaciones bajo el mapa */
+  /* Lista textual de relaciones (incluye intra-perspectiva) */
   const relList = $("#relList");
   relList.innerHTML="";
   REL_EDGES.forEach(e=>{
@@ -578,13 +652,37 @@ function drawMap(periodo){
     row.className="relRow";
     const fromName = perspName(e.from);
     const toName = perspName(e.to);
-    row.innerHTML = `
-      <div class="relTitle">${fromName} → ${toName}</div>
-      <div class="relChips">
-        ${e.pos.map(x=>`<span class="chipPos">+ ${x}</span>`).join("")}
-        ${e.neg.map(x=>`<span class="chipNeg">− ${x}</span>`).join("")}
-      </div>
-    `;
+    const title = e.intra
+      ? `${fromName} (relaciones internas)`
+      : `${fromName} → ${toName}`;
+    const titleDiv=document.createElement("div");
+    titleDiv.className="relTitle";
+    titleDiv.textContent=title;
+    row.appendChild(titleDiv);
+
+    const chipsDiv=document.createElement("div");
+    chipsDiv.className="relChips";
+
+    e.pos.forEach(d=>{
+      const st=getKPIStateForPeriod(d.kpi,periodo) || "warn";
+      const span=document.createElement("span");
+      span.className="chipPos";
+      span.style.borderColor=stateColor(st);
+      span.style.color=stateColor(st);
+      span.textContent=`+ ${d.label}`;
+      chipsDiv.appendChild(span);
+    });
+    e.neg.forEach(d=>{
+      const st=getKPIStateForPeriod(d.kpi,periodo) || "warn";
+      const span=document.createElement("span");
+      span.className="chipNeg";
+      span.style.borderColor=stateColor(st);
+      span.style.color=stateColor(st);
+      span.textContent=`− ${d.label}`;
+      chipsDiv.appendChild(span);
+    });
+
+    row.appendChild(chipsDiv);
     relList.appendChild(row);
   });
 }
