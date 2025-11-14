@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Balanced Scorecard 360° — Masterpol</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Balanced Scorecard 360° — <span style="color:var(--accent)">Masterpol</span></h1>
+  </div>
+  <div class="controls">
+    <label>Período&nbsp;
+      <select id="selPeriodo"></select>
+    </label>
+    <span>Comparar con</span>
+    <button class="toggle" data-cmp="mes" aria-pressed="true">Mes Anterior</button>
+    <button class="toggle" data-cmp="tri">Trimestre Anterior</button>
+    <button class="toggle" data-cmp="anio">Año Anterior</button>
+    <button class="toggle" data-cmp="pres">Presupuesto</button>
+    <input id="q" placeholder="Buscar KPI" style="min-width:220px"/>
+    <button id="btnUpd">Actualizar</button>
+  </div>
+</header>
+
+<main>
+  <!-- Resumen de % verdes por perspectiva -->
+  <div class="kpiSummary" id="summary"></div>
+
+  <!-- Bloques por perspectiva (se llenan por JS) -->
+  <section class="block" id="fin">
+    <header><h2>Perspectiva Financiera</h2></header>
+    <div class="grid"></div>
+  </section>
+  <section class="block" id="cli">
+    <header><h2>Perspectiva del Cliente</h2></header>
+    <div class="grid"></div>
+  </section>
+  <section class="block" id="pro">
+    <header><h2>Procesos Internos</h2></header>
+    <div class="grid"></div>
+  </section>
+  <section class="block" id="apr">
+    <header><h2>Aprendizaje y Crecimiento</h2></header>
+    <div class="grid"></div>
+  </section>
+  <section class="block" id="sus">
+    <header><h2>Sostenibilidad</h2></header>
+    <div class="grid"></div>
+  </section>
+
+  <!-- Mapa causa-efecto simple -->
+  <div class="mapWrap">
+    <h3>Relaciones de causa-efecto (resumen)</h3>
+    <svg class="map" id="map" viewBox="0 0 800 240" aria-label="Mapa causa-efecto"></svg>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="dialog">
+    <div class="dlgHead">
+      <h3 id="dlgTitle">KPI</h3>
+      <button class="close" id="btnClose">Cerrar</button>
+    </div>
+    <div class="cols">
+      <div class="panel">
+        <h4>Evolución (12 meses)</h4>
+        <svg id="dlgSpark" width="100%" height="200"></svg>
+      </div>
+      <div class="panel">
+        <h4>Desagregados</h4>
+        <table>
+          <thead><tr><th>Segmento</th><th>Actual</th><th>Meta</th><th>Estado</th></tr></thead>
+          <tbody id="dlgTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Demo ejecutiva de BSC con datos ficticios para “Masterpol”. 12 períodos, comparadores (mes/trim/año/pres), semáforos y drill-down.</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>
