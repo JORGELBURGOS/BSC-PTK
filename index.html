@@ -1,103 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Balanced Scorecard 360° — Masterpol</title>
+  <meta charset="UTF-8">
+  <title>Balanced Scorecard 360° - Masterpol</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<header>
-  <div class="row">
-    <h1>Balanced Scorecard 360° — <span style="color:var(--accent)">Masterpol</span></h1>
-  </div>
-  <div class="controls">
-    <label>Período&nbsp;
-      <select id="selPeriodo"></select>
-    </label>
-    <span>Comparar con</span>
-    <button class="toggle" data-cmp="mes" aria-pressed="true">Mes Anterior</button>
-    <button class="toggle" data-cmp="tri" aria-pressed="false">Trimestre Anterior</button>
-    <button class="toggle" data-cmp="anio" aria-pressed="false">Año Anterior</button>
-    <button class="toggle" data-cmp="pres" aria-pressed="false">Presupuesto</button>
-    <input id="q" placeholder="Buscar KPI" style="min-width:220px"/>
-    <button id="btnUpd">Actualizar</button>
-  </div>
-</header>
+  <header class="topbar">
+    <div class="topbar-main">
+      <h1>Balanced Scorecard 360° <span>- Masterpol</span></h1>
+      <p class="subtitle">
+        Tablero integral con indicadores por perspectiva, análisis histórico,
+        comparaciones contra presupuesto y mapa de causa-efecto.
+      </p>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <label for="selPeriodo">Período</label>
+        <select id="selPeriodo"></select>
+      </div>
 
-<main>
-  <!-- Resumen de % verdes por perspectiva -->
-  <div class="kpiSummary" id="summary"></div>
+      <div class="filter-group">
+        <span>Comparar con</span>
+        <div class="toggle-group">
+          <button type="button" class="toggle" data-cmp="mes" aria-pressed="true">Mes anterior</button>
+          <button type="button" class="toggle" data-cmp="tri" aria-pressed="false">Trimestre anterior</button>
+          <button type="button" class="toggle" data-cmp="anio" aria-pressed="false">Año anterior</button>
+          <button type="button" class="toggle" data-cmp="pres" aria-pressed="false">Presupuesto</button>
+        </div>
+      </div>
 
-  <!-- Bloques por perspectiva -->
-  <section class="block" id="fin">
-    <header><h2>Perspectiva Financiera</h2></header>
-    <div class="grid"></div>
-  </section>
-  <section class="block" id="cli">
-    <header><h2>Perspectiva del Cliente</h2></header>
-    <div class="grid"></div>
-  </section>
-  <section class="block" id="pro">
-    <header><h2>Procesos Internos</h2></header>
-    <div class="grid"></div>
-  </section>
-  <section class="block" id="apr">
-    <header><h2>Aprendizaje y Crecimiento</h2></header>
-    <div class="grid"></div>
-  </section>
-  <section class="block" id="sus">
-    <header><h2>Sostenibilidad</h2></header>
-    <div class="grid"></div>
-  </section>
+      <div class="filter-group search-group">
+        <label for="q">Buscar KPI</label>
+        <input id="q" type="text" placeholder="Nombre del indicador">
+      </div>
 
-  <!-- Mapa causa-efecto + lista de relaciones -->
-  <div class="mapWrap">
-    <div class="mapHeader">
-      <h3>Relaciones de causa–efecto (resumen)</h3>
-      <div class="legend">
-        <span class="legItem"><span class="legDot pos"></span>Impacto positivo</span>
-        <span class="legItem"><span class="legDot neg"></span>Impacto negativo</span>
+      <div class="filter-group">
+        <button id="btnUpd" type="button" class="btn-primary">Actualizar</button>
       </div>
     </div>
-    <svg class="map" id="map" viewBox="0 0 800 260" aria-label="Mapa causa-efecto"></svg>
-    <div id="relList" class="relList"></div>
-  </div>
-</main>
+  </header>
 
-<!-- Modal de detalle KPI -->
-<div class="modal" id="modal">
-  <div class="dialog">
-    <div class="dlgHead">
-      <h3 id="dlgTitle">KPI</h3>
-      <button class="close" id="btnClose">Cerrar</button>
-    </div>
-    <div class="cols">
-      <div class="panel">
-        <h4>Evolución del indicador (últimos 24 meses)</h4>
-        <svg id="dlgSpark" width="100%" height="220"></svg>
-        <div id="dlgMonths" class="monthTable"></div>
+  <main class="layout">
+    <section class="summary-section">
+      <h2>Resumen por perspectiva</h2>
+      <p class="section-help">
+        Cada tarjeta muestra cuántos indicadores están en buen estado dentro de la perspectiva elegida
+        y un semáforo global del período seleccionado.
+      </p>
+      <div id="summary" class="summary-grid"></div>
+    </section>
+
+    <section class="kpi-section">
+      <h2>Detalle de indicadores por perspectiva</h2>
+
+      <article id="fin" class="perspective">
+        <header>
+          <h3>Perspectiva Financiera</h3>
+          <p>
+            Margen, rentabilidad y generación de caja que reflejan el impacto acumulado de
+            decisiones operativas y comerciales.
+          </p>
+        </header>
+        <div class="grid"></div>
+      </article>
+
+      <article id="cli" class="perspective">
+        <header>
+          <h3>Perspectiva del Cliente</h3>
+          <p>
+            Nivel de servicio, reclamos y fidelidad que muestran cómo perciben los clientes
+            la propuesta de valor de Masterpol.
+          </p>
+        </header>
+        <div class="grid"></div>
+      </article>
+
+      <article id="pro" class="perspective">
+        <header>
+          <h3>Procesos Internos</h3>
+          <p>
+            Eficiencia, calidad y confiabilidad de los procesos productivos y logísticos,
+            con foco en OEE, scrap y estabilidad de equipos.
+          </p>
+        </header>
+        <div class="grid"></div>
+      </article>
+
+      <article id="apr" class="perspective">
+        <header>
+          <h3>Aprendizaje y Crecimiento</h3>
+          <p>
+            Capacidades del equipo, cultura de mejora y cobertura de roles críticos que
+            habilitan o limitan el desempeño del resto del sistema.
+          </p>
+        </header>
+        <div class="grid"></div>
+      </article>
+
+      <article id="sus" class="perspective">
+        <header>
+          <h3>Sostenibilidad</h3>
+          <p>
+            Indicadores ambientales y de uso de recursos que conectan la operación con
+            objetivos de eficiencia energética y huella de carbono.
+          </p>
+        </header>
+        <div class="grid"></div>
+      </article>
+    </section>
+
+    <section class="causa-section">
+      <h2>Relaciones de causa-efecto</h2>
+      <p class="section-help">
+        El mapa muestra cómo los indicadores de Aprendizaje y Procesos impactan sobre Cliente
+        y Finanzas. Los colores reflejan el estado actual de los indicadores que impulsan
+        o tensionan cada relación.
+      </p>
+
+      <div class="map-wrapper">
+        <svg id="map"></svg>
+        <div class="legend">
+          <span class="dot good"></span><span>Impacto positivo</span>
+          <span class="dot bad"></span><span>Impacto negativo</span>
+        </div>
       </div>
-      <div class="panel">
-        <h4>Desagregados por segmento</h4>
-        <table>
-          <thead>
-          <tr>
-            <th>Segmento</th>
-            <th>Actual</th>
-            <th>Meta</th>
-            <th>Estado</th>
-          </tr>
-          </thead>
-          <tbody id="dlgTbody"></tbody>
-        </table>
+
+      <div id="relList" class="rel-list"></div>
+
+      <div id="narrative" class="narrative">
+        <!-- acá se escribe automáticamente el relato explicativo por período -->
       </div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2 id="dlgTitle"></h2>
+        <button id="btnClose" type="button" class="btn-icon" aria-label="Cerrar">×</button>
+      </header>
+
+      <section class="modal-body">
+        <div class="modal-chart">
+          <h3>Evolución histórica</h3>
+          <svg id="dlgSpark"></svg>
+        </div>
+
+        <div class="modal-breakdown">
+          <h3>Detalle por segmento</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Segmento</th>
+                <th>Actual</th>
+                <th>Meta</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="dlgTbody"></tbody>
+          </table>
+        </div>
+
+        <div class="modal-months">
+          <h3>Valores por período</h3>
+          <div id="dlgMonths"></div>
+        </div>
+      </section>
     </div>
   </div>
-</div>
 
-<footer></footer>
-
-<script src="js/app.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

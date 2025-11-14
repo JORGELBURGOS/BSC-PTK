@@ -1,421 +1,485 @@
-/* ======================= GENERADOR DE DATOS (SEMILLA FIJA) ======================= */
-function PRNG(seed=123456){
-  let t=seed;
-  return ()=> (t=(t*1664525+1013904223)%4294967296)/4294967296;
-}
-const rnd = PRNG(20251113);
+/* DATOS Y UTILIDADES BÁSICAS */
 
-function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
-function jitter(base,vol){
-  const f=(rnd()*2-1)*vol;
-  return base*(1+f);
+function PRNG(seed) {
+  let t = seed;
+  return function () {
+    t = (t * 1664525 + 1013904223) % 4294967296;
+    return t / 4294967296;
+  };
 }
 
-/* Periodos: 2024-01 .. 2025-12 (24 meses en historia, 12 visibles) */
+const rnd = PRNG(20251114);
+
+function jitter(base, vol) {
+  const f = (rnd() * 2 - 1) * vol;
+  return base * (1 + f);
+}
+
+function clamp(v, a, b) {
+  return Math.max(a, Math.min(b, v));
+}
+
+/* PERIODOS */
+
 const PERIODOS_ALL = [];
-for(let y=2024;y<=2025;y++){
-  for(let m=1;m<=12;m++){
-    PERIODOS_ALL.push(`${y}-${String(m).padStart(2,"0")}`);
+for (let y = 2024; y <= 2025; y++) {
+  for (let m = 1; m <= 12; m++) {
+    PERIODOS_ALL.push(`${y}-${String(m).padStart(2, "0")}`);
   }
 }
-const PERIODOS_SELECT = PERIODOS_ALL.filter(p=>p.startsWith("2025-"));
+const PERIODOS_SELECT = PERIODOS_ALL.filter((p) => p.startsWith("2025-"));
 
-/* ======================= PLANTILLAS DE KPI ======================= */
+/* PLANTILLAS DE KPI */
+
 const PLANTILLAS = {
   FIN: [
-    { n:"Margen Bruto", u:"%", pol:"up", base:22.0, meta:24.0, warn:21.5, pres:24.0 },
-    { n:"EBITDA / Ventas", u:"%", pol:"up", base:10.5, meta:12.0, warn:9.5, pres:12.0 },
-    { n:"Flujo de Caja Operativo", u:"MM USD", pol:"up", base:1.5, meta:2.0, warn:1.2, pres:2.0 },
-    { n:"Rotación de Inventarios", u:"x", pol:"up", base:6.8, meta:7.2, warn:6.3, pres:7.0 }
+    { n: "Margen Bruto", u: "%", pol: "up", base: 22.0, meta: 24.0, warn: 21.5, pres: 24.0 },
+    { n: "EBITDA / Ventas", u: "%", pol: "up", base: 10.5, meta: 12.0, warn: 9.5, pres: 12.0 },
+    { n: "Flujo de Caja Operativo", u: "MM USD", pol: "up", base: 1.5, meta: 2.0, warn: 1.2, pres: 2.0 },
+    { n: "Rotación de Inventarios", u: "x", pol: "up", base: 6.8, meta: 7.2, warn: 6.3, pres: 7.0 }
   ],
   CLI: [
-    { n:"OTIF", u:"%", pol:"up", base:90, meta:95, warn:88, pres:94 },
-    { n:"Tasa de reacuerdos", u:"%", pol:"down", base:8.5, meta:5.0, warn:7.5, pres:6.0 },
-    { n:"Reclamos por mil órdenes", u:"‱", pol:"down", base:4.2, meta:2.5, warn:3.8, pres:2.8 },
-    { n:"NPS", u:"pts", pol:"up", base:52, meta:60, warn:48, pres:58 }
+    { n: "OTIF", u: "%", pol: "up", base: 90, meta: 95, warn: 88, pres: 94 },
+    { n: "Tasa de reacuerdos", u: "%", pol: "down", base: 8.5, meta: 5.0, warn: 7.5, pres: 6.0 },
+    { n: "Reclamos por mil órdenes", u: "‱", pol: "down", base: 4.2, meta: 2.5, warn: 3.8, pres: 2.8 },
+    { n: "NPS", u: "pts", pol: "up", base: 52, meta: 60, warn: 48, pres: 58 }
   ],
   PRO: [
-    { n:"OEE", u:"%", pol:"up", base:58, meta:68, warn:60, pres:65 },
-    { n:"Scrap", u:"%", pol:"down", base:3.2, meta:2.0, warn:3.0, pres:2.4 },
-    { n:"MTTR", u:"min", pol:"down", base:42, meta:32, warn:40, pres:36 },
-    { n:"MTBF", u:"h", pol:"up", base:38, meta:48, warn:38, pres:44 }
+    { n: "OEE", u: "%", pol: "up", base: 58, meta: 68, warn: 60, pres: 65 },
+    { n: "Scrap", u: "%", pol: "down", base: 3.2, meta: 2.0, warn: 3.0, pres: 2.4 },
+    { n: "MTTR", u: "min", pol: "down", base: 42, meta: 32, warn: 40, pres: 36 },
+    { n: "MTBF", u: "h", pol: "up", base: 38, meta: 48, warn: 38, pres: 44 }
   ],
   APR: [
-    { n:"Horas de capacitación / persona", u:"h", pol:"up", base:14, meta:24, warn:16, pres:20 },
-    { n:"Ideas de mejora implementadas", u:"/mes", pol:"up", base:14, meta:25, warn:12, pres:20 },
-    { n:"Cumplimiento 5S", u:"%", pol:"up", base:70, meta:85, warn:72, pres:80 },
-    { n:"Cobertura de roles críticos", u:"%", pol:"up", base:64, meta:80, warn:68, pres:75 }
+    { n: "Horas de capacitación / persona", u: "h", pol: "up", base: 14, meta: 24, warn: 16, pres: 20 },
+    { n: "Ideas de mejora implementadas", u: "/mes", pol: "up", base: 14, meta: 25, warn: 12, pres: 20 },
+    { n: "Cumplimiento 5S", u: "%", pol: "up", base: 70, meta: 85, warn: 72, pres: 80 },
+    { n: "Cobertura de roles críticos", u: "%", pol: "up", base: 64, meta: 80, warn: 68, pres: 75 }
   ],
   SUS: [
-    { n:"Consumo de energía / t", u:"kWh/t", pol:"down", base:440, meta:390, warn:430, pres:400 },
-    { n:"Emisiones CO₂ / t", u:"kg/t", pol:"down", base:205, meta:170, warn:200, pres:180 },
-    { n:"Residuos reciclados", u:"%", pol:"up", base:58, meta:75, warn:60, pres:70 }
+    { n: "Consumo de energía / t", u: "kWh/t", pol: "down", base: 440, meta: 390, warn: 430, pres: 400 },
+    { n: "Emisiones CO2 / t", u: "kg/t", pol: "down", base: 205, meta: 170, warn: 200, pres: 180 },
+    { n: "Residuos reciclados", u: "%", pol: "up", base: 58, meta: 75, warn: 60, pres: 70 }
   ]
 };
 
-function generaSerie(k){
-  const arr=[];
-  let v=k.base;
-  for(let i=0;i<24;i++){
-    const dir=(k.pol==="up"?1:-1);
-    const bias=dir*0.006;
+function generaSerie(k) {
+  const arr = [];
+  let v = k.base;
+  for (let i = 0; i < 24; i++) {
+    const dir = k.pol === "up" ? 1 : -1;
+    const bias = dir * 0.006;
     let ruido;
-    if(k.u==="%") ruido=0.6;
-    else if(k.u==="MM USD") ruido=0.06;
-    else if(k.u==="‱") ruido=0.4;
-    else if(k.u==="x") ruido=0.04;
-    else if(k.u==="min"||k.u==="h") ruido=0.9;
-    else ruido=0.9;
-    v=v*(1+bias)+(rnd()*2-1)*ruido;
-    if(k.pol==="up") v=Math.max(v,k.warn*0.85);
-    else v=Math.min(v,k.warn*1.2);
-    const dec=(k.u==="%"||k.u==="‱"||k.u==="x")?1:(k.u==="MM USD"?2:0);
+    if (k.u === "%") ruido = 0.6;
+    else if (k.u === "MM USD") ruido = 0.06;
+    else if (k.u === "‱") ruido = 0.4;
+    else if (k.u === "x") ruido = 0.04;
+    else if (k.u === "min" || k.u === "h") ruido = 0.9;
+    else ruido = 0.9;
+
+    v = v * (1 + bias) + (rnd() * 2 - 1) * ruido;
+    if (k.pol === "up") v = Math.max(v, k.warn * 0.85);
+    else v = Math.min(v, k.warn * 1.2);
+
+    const dec = k.u === "%" || k.u === "‱" || k.u === "x" ? 1 : k.u === "MM USD" ? 2 : 0;
     arr.push(Number(v.toFixed(dec)));
   }
   return arr;
 }
 
-/* Construye DATA principal */
-function buildData(){
-  const grupos=[
-    {code:"FIN",id:"fin",nombre:"Financiera"},
-    {code:"CLI",id:"cli",nombre:"Cliente"},
-    {code:"PRO",id:"pro",nombre:"Procesos Internos"},
-    {code:"APR",id:"apr",nombre:"Aprendizaje y Crecimiento"},
-    {code:"SUS",id:"sus",nombre:"Sostenibilidad"}
+function buildData() {
+  const grupos = [
+    { code: "FIN", id: "fin", nombre: "Financiera" },
+    { code: "CLI", id: "cli", nombre: "Cliente" },
+    { code: "PRO", id: "pro", nombre: "Procesos Internos" },
+    { code: "APR", id: "apr", nombre: "Aprendizaje y Crecimiento" },
+    { code: "SUS", id: "sus", nombre: "Sostenibilidad" }
   ];
-  const perspectivas=[];
-  for(const g of grupos){
-    const kpis = PLANTILLAS[g.code].map(t=>{
-      const s=generaSerie(t);
-      const hist={};
-      PERIODOS_ALL.forEach((per,idx)=>{
-        const a=s[idx];
-        hist[per]={ a, pres:t.pres, meta:t.meta, warn:t.warn };
+
+  const perspectivas = [];
+
+  for (const g of grupos) {
+    const kpis = PLANTILLAS[g.code].map((t) => {
+      const s = generaSerie(t);
+      const hist = {};
+      PERIODOS_ALL.forEach((per, idx) => {
+        const a = s[idx];
+        hist[per] = { a, pres: t.pres, meta: t.meta, warn: t.warn };
       });
-      const br=[
-        {seg:"Línea A",a:jitter(t.base,0.1),t:t.meta,u:t.u,pol:t.pol},
-        {seg:"Línea B",a:jitter(t.base*1.02,0.1),t:t.meta,u:t.u,pol:t.pol}
+
+      const br = [
+        { seg: "Línea A", a: jitter(t.base, 0.1), t: t.meta, u: t.u, pol: t.pol },
+        { seg: "Línea B", a: jitter(t.base * 1.02, 0.1), t: t.meta, u: t.u, pol: t.pol }
       ];
-      return { n:t.n,u:t.u,pol:t.pol,s,br,hist };
+
+      return { n: t.n, u: t.u, pol: t.pol, s, br, hist };
     });
-    perspectivas.push({code:g.code,id:g.id,nombre:g.nombre,kpis});
+
+    perspectivas.push({ code: g.code, id: g.id, nombre: g.nombre, kpis });
   }
+
   return perspectivas;
 }
 
 const DATA = {
-  periodosSelect:PERIODOS_SELECT,
-  periodosAll:PERIODOS_ALL,
-  perspectivas:buildData()
+  periodosSelect: PERIODOS_SELECT,
+  periodosAll: PERIODOS_ALL,
+  perspectivas: buildData()
 };
 
-/* ======================= HELPERS ======================= */
-const $ = sel => document.querySelector(sel);
-function fmt(v,u){
-  if(u==="%") return v.toFixed(1)+"%";
-  if(u==="MM USD") return v.toFixed(2)+" MM";
-  if(u==="‱") return v.toFixed(1);
-  if(u==="h"||u==="min"||u==="pts"||u==="/mes") return v.toFixed(0)+(u==="/mes"?" /mes":" "+u);
-  if(u==="x") return v.toFixed(1)+"x";
-  if(u==="kWh/t"||u==="kg/t") return v.toFixed(0)+" "+u;
-  return v.toFixed(1)+" "+(u||"");
-}
-function state(pol,a,meta,warn){
-  if(pol==="up") return a>=meta?"good":(a>=warn?"warn":"bad");
-  return a<=meta?"good":(a<=warn?"warn":"bad");
-}
-function pctDiff(cur,ref,pol){
-  if(ref===0||ref==null) return null;
-  const d=((cur-ref)/ref)*100;
-  const sign=(pol==="up"?d:-d);
-  return sign;
-}
-function gaugeColor(pct){
-  if(pct>=70) return "good";
-  if(pct>=40) return "warn";
-  return "bad";
-}
-const MESES_ABR=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-function fmtPeriodo(per){
-  const [y,m]=per.split("-");
-  return MESES_ABR[Number(m)-1]+"-"+y.slice(-2);
+/* FORMATEO Y ESTADO */
+
+const MESES_ABR = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+function $(sel) {
+  return document.querySelector(sel);
 }
 
-/* Helpers para causa–efecto */
-function findKPIByName(name){
-  for(const p of DATA.perspectivas){
-    const f=p.kpis.find(k=>k.n===name);
-    if(f) return {k:f,pers:p};
+function fmt(v, u) {
+  if (u === "%") return v.toFixed(1) + "%";
+  if (u === "MM USD") return v.toFixed(2) + " MM";
+  if (u === "‱") return v.toFixed(1);
+  if (u === "h" || u === "min" || u === "pts" || u === "/mes") {
+    if (u === "/mes") return v.toFixed(0) + " /mes";
+    return v.toFixed(0) + " " + u;
+  }
+  if (u === "x") return v.toFixed(1) + "x";
+  if (u === "kWh/t" || u === "kg/t") return v.toFixed(0) + " " + u;
+  return v.toFixed(1) + " " + (u || "");
+}
+
+function state(pol, a, meta, warn) {
+  if (pol === "up") {
+    if (a >= meta) return "good";
+    if (a >= warn) return "warn";
+    return "bad";
+  }
+  if (a <= meta) return "good";
+  if (a <= warn) return "warn";
+  return "bad";
+}
+
+function pctDiff(cur, ref, pol) {
+  if (ref === 0 || ref == null) return null;
+  const d = ((cur - ref) / ref) * 100;
+  const sign = pol === "up" ? d : -d;
+  return sign;
+}
+
+function gaugeColor(pct) {
+  if (pct >= 70) return "good";
+  if (pct >= 40) return "warn";
+  return "bad";
+}
+
+function fmtPeriodo(per) {
+  const [y, m] = per.split("-");
+  return MESES_ABR[Number(m) - 1] + "-" + y.slice(-2);
+}
+
+/* BUSCAR KPI POR NOMBRE PARA CAUSA EFECTO */
+
+function findKPIByName(name) {
+  for (const p of DATA.perspectivas) {
+    const f = p.kpis.find((k) => k.n === name);
+    if (f) return { k: f, pers: p };
   }
   return null;
 }
-function getKPIStateForPeriod(name,periodo){
-  const ref=findKPIByName(name);
-  if(!ref) return null;
-  const h=ref.k.hist[periodo];
-  return state(ref.k.pol,h.a,h.meta,h.warn);
+
+function getKPIStateForPeriod(name, periodo) {
+  const ref = findKPIByName(name);
+  if (!ref) return null;
+  const h = ref.k.hist[periodo];
+  return state(ref.k.pol, h.a, h.meta, h.warn);
 }
-function stateColor(st){
-  if(st==="good") return "#16c172";
-  if(st==="warn") return "#ffbf3c";
+
+function stateColor(st) {
+  if (st === "good") return "#16c172";
+  if (st === "warn") return "#ffbf3c";
   return "#ff5d5d";
 }
-function aggregateState(drivers,periodo){
+
+function aggregateState(drivers, periodo) {
   const sts = drivers
-    .map(d=>getKPIStateForPeriod(d.kpi,periodo))
+    .map((d) => getKPIStateForPeriod(d.kpi, periodo))
     .filter(Boolean);
-  if(!sts.length) return "warn";
-  if(sts.some(s=>s==="bad")) return "bad";
-  if(sts.some(s=>s==="warn")) return "warn";
+  if (!sts.length) return "warn";
+  if (sts.some((s) => s === "bad")) return "bad";
+  if (sts.some((s) => s === "warn")) return "warn";
   return "good";
 }
 
-/* ======================= DOM ELEMENTOS PRINCIPALES ======================= */
-const selPeriodo=$("#selPeriodo");
-const summary=$("#summary");
-const blocks={
-  FIN:$("#fin .grid"),
-  CLI:$("#cli .grid"),
-  PRO:$("#pro .grid"),
-  APR:$("#apr .grid"),
-  SUS:$("#sus .grid")
+/* ELEMENTOS DEL DOM */
+
+const selPeriodo = $("#selPeriodo");
+const summary = $("#summary");
+const narrativeDiv = $("#narrative");
+
+const blocks = {
+  FIN: $("#fin .grid"),
+  CLI: $("#cli .grid"),
+  PRO: $("#pro .grid"),
+  APR: $("#apr .grid"),
+  SUS: $("#sus .grid")
 };
 
-/* ======================= RESUMEN POR PERSPECTIVA ======================= */
-DATA.periodosSelect.forEach(p=>{
-  const opt=document.createElement("option");
-  opt.value=p;
-  opt.textContent=p;
+/* RESUMEN POR PERSPECTIVA */
+
+DATA.periodosSelect.forEach((p) => {
+  const opt = document.createElement("option");
+  opt.value = p;
+  opt.textContent = p;
   selPeriodo.appendChild(opt);
 });
-selPeriodo.value = DATA.periodosSelect[DATA.periodosSelect.length-1];
+selPeriodo.value = DATA.periodosSelect[DATA.periodosSelect.length - 1];
 
-function renderSummary(periodo){
-  summary.innerHTML="";
-  DATA.perspectivas.forEach(p=>{
-    const total=p.kpis.length;
-    const greens=p.kpis.filter(k=>{
-      const h=k.hist[periodo];
-      return state(k.pol,h.a,h.meta,h.warn)==="good";
+function renderSummary(periodo) {
+  summary.innerHTML = "";
+  DATA.perspectivas.forEach((p) => {
+    const total = p.kpis.length;
+    const greens = p.kpis.filter((k) => {
+      const h = k.hist[periodo];
+      return state(k.pol, h.a, h.meta, h.warn) === "good";
     }).length;
-    const pct=Math.round((greens/total)*100);
-    const tile=document.createElement("div");
-    tile.className="tile";
-    tile.innerHTML=`
+    const pct = Math.round((greens / total) * 100);
+
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.innerHTML = `
       <h3>${p.nombre}</h3>
       <div class="gauge">
         <div class="bar ${gaugeColor(pct)}" style="width:${pct}%"></div>
       </div>
-      <div class="pct">${greens}/${total} indicadores favorables — ${pct}%</div>
+      <div class="pct">${greens}/${total} indicadores favorables - ${pct}%</div>
     `;
     summary.appendChild(tile);
   });
 }
 
-/* ======================= BLOQUES DE KPI ======================= */
-let currentCmp="mes";
+/* TARJETAS DE KPI */
 
-document.querySelectorAll("button.toggle").forEach(b=>{
-  b.addEventListener("click",()=>{
-    document.querySelectorAll("button.toggle").forEach(x=>x.setAttribute("aria-pressed","false"));
-    b.setAttribute("aria-pressed","true");
-    currentCmp=b.dataset.cmp;
+let currentCmp = "mes";
+
+document.querySelectorAll("button.toggle").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("button.toggle").forEach((x) => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true");
+    currentCmp = b.dataset.cmp;
     renderAll();
   });
 });
 
-function refPeriodo(periodo){
-  const idx=DATA.periodosAll.indexOf(periodo);
-  if(currentCmp==="mes") return DATA.periodosAll[idx-1] || null;
-  if(currentCmp==="tri") return DATA.periodosAll[idx-3] || null;
-  if(currentCmp==="anio") return DATA.periodosAll[idx-12] || null;
+function refPeriodo(periodo) {
+  const idx = DATA.periodosAll.indexOf(periodo);
+  if (currentCmp === "mes") return DATA.periodosAll[idx - 1] || null;
+  if (currentCmp === "tri") return DATA.periodosAll[idx - 3] || null;
+  if (currentCmp === "anio") return DATA.periodosAll[idx - 12] || null;
   return "PRES";
 }
 
-function sparkPath(arr,color){
-  const min=Math.min(...arr), max=Math.max(...arr);
-  const norm=v=> 26-((v-min)/(max-min || 1))*24;
-  const step=100/(arr.length-1);
-  let d=`M 0 ${norm(arr[0]).toFixed(2)} `;
-  arr.forEach((v,i)=> d+=`L ${(i*step).toFixed(2)} ${norm(v).toFixed(2)} `);
-  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6"/>`;
+function sparkPath(arr, color) {
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  const norm = (v) => 26 - ((v - min) / (max - min || 1)) * 24;
+  const step = 100 / (arr.length - 1);
+  let d = `M 0 ${norm(arr[0]).toFixed(2)} `;
+  arr.forEach((v, i) => {
+    d += `L ${(i * step).toFixed(2)} ${norm(v).toFixed(2)} `;
+  });
+  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" />`;
 }
 
-function renderBlocks(periodo,filterText){
-  Object.values(blocks).forEach(el=>el.innerHTML="");
-  const ref=refPeriodo(periodo);
-  const filter=(filterText||"").toLowerCase();
+function renderBlocks(periodo, filterText) {
+  Object.values(blocks).forEach((el) => (el.innerHTML = ""));
+  const ref = refPeriodo(periodo);
+  const filter = (filterText || "").toLowerCase();
 
-  DATA.perspectivas.forEach(p=>{
-    const grid=blocks[p.code];
+  DATA.perspectivas.forEach((p) => {
+    const grid = blocks[p.code];
     p.kpis
-      .filter(k=>!filter || k.n.toLowerCase().includes(filter))
-      .forEach(k=>{
-        const h=k.hist[periodo];
-        const st=state(k.pol,h.a,h.meta,h.warn);
-        let deltaStr="";
-        if(ref==="PRES"){
-          const d=pctDiff(h.a,h.pres,k.pol);
-          deltaStr=d==null?"":`Δ vs Pres: ${(d>=0?"+":"")+d.toFixed(1)}%`;
-        }else if(ref && k.hist[ref]){
-          const d=pctDiff(h.a,k.hist[ref].a,k.pol);
-          deltaStr=d==null?"":`Δ vs ${fmtPeriodo(ref)}: ${(d>=0?"+":"")+d.toFixed(1)}%`;
-        }
-        const series12=k.s.slice(-12);
+      .filter((k) => !filter || k.n.toLowerCase().includes(filter))
+      .forEach((k) => {
+        const h = k.hist[periodo];
+        const st = state(k.pol, h.a, h.meta, h.warn);
 
-        const card=document.createElement("div");
-        card.className="kpi";
-        card.setAttribute("role","button");
-        card.innerHTML=`
+        let deltaStr = "";
+        if (ref === "PRES") {
+          const d = pctDiff(h.a, h.pres, k.pol);
+          deltaStr = d == null ? "" : `Delta vs presupuesto: ${(d >= 0 ? "+" : "") + d.toFixed(1)}%`;
+        } else if (ref && k.hist[ref]) {
+          const d = pctDiff(h.a, k.hist[ref].a, k.pol);
+          deltaStr = d == null ? "" : `Delta vs ${fmtPeriodo(ref)}: ${(d >= 0 ? "+" : "") + d.toFixed(1)}%`;
+        }
+
+        const series12 = k.s.slice(-12);
+        const colorSpark = st === "good" ? "#16c172" : st === "warn" ? "#ffbf3c" : "#ff5d5d";
+
+        const card = document.createElement("div");
+        card.className = "kpi";
+        card.setAttribute("role", "button");
+        card.innerHTML = `
           <div class="head">
             <span class="chip">${k.u}</span>
             <div class="name">${k.n}</div>
             <div class="sema ${st}" title="Estado actual"></div>
           </div>
           <div class="vals">
-            <div class="actual">${fmt(h.a,k.u)}</div>
-            <div class="budget">Budget: <b>${fmt(h.pres,k.u)}</b> | Meta: <b>${fmt(h.meta,k.u)}</b></div>
+            <div class="actual">${fmt(h.a, k.u)}</div>
+            <div class="budget">Budget: <b>${fmt(h.pres, k.u)}</b> | Meta: <b>${fmt(h.meta, k.u)}</b></div>
             <div class="delta">${deltaStr}</div>
           </div>
           <div class="trend">
             <svg viewBox="0 0 100 28" preserveAspectRatio="none">
-              ${sparkPath(series12, st==="good"?"#16c172":(st==="warn"?"#ffbf3c":"#ff5d5d"))}
+              ${sparkPath(series12, colorSpark)}
             </svg>
           </div>
         `;
-        card.addEventListener("click",()=>openModal(`${p.nombre} • ${k.n}`,k,periodo));
+        card.addEventListener("click", () => openModal(`${p.nombre} - ${k.n}`, k, periodo));
         grid.appendChild(card);
       });
   });
 }
 
-/* ======================= MODAL DRILL-DOWN ======================= */
-const modal=$("#modal");
-const dlgTitle=$("#dlgTitle");
-const dlgSpark=$("#dlgSpark");
-const dlgTbody=$("#dlgTbody");
-const dlgMonths=$("#dlgMonths");
-const btnClose=$("#btnClose");
+/* MODAL */
 
-btnClose.onclick=()=>modal.classList.remove("show");
-modal.addEventListener("click",e=>{ if(e.target===modal) modal.classList.remove("show"); });
+const modal = $("#modal");
+const dlgTitle = $("#dlgTitle");
+const dlgSpark = $("#dlgSpark");
+const dlgTbody = $("#dlgTbody");
+const dlgMonths = $("#dlgMonths");
+const btnClose = $("#btnClose");
 
-function openModal(title,k,periodo){
-  dlgTitle.textContent=title;
+btnClose.onclick = () => modal.classList.remove("show");
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) modal.classList.remove("show");
+});
+
+function openModal(title, k, periodo) {
+  dlgTitle.textContent = title;
   renderSparkBig(k);
-  renderBreakdown(k,periodo);
+  renderBreakdown(k, periodo);
   renderMonthTable(k);
   modal.classList.add("show");
 }
 
-function renderSparkBig(k){
-  const w=dlgSpark.clientWidth || 800;
-  const h=220;
-  const padL=48, padR=16, padT=20, padB=32;
-  dlgSpark.setAttribute("viewBox",`0 0 ${w} ${h}`);
-  dlgSpark.innerHTML="";
+function renderSparkBig(k) {
+  const w = dlgSpark.clientWidth || 800;
+  const h = 220;
+  const padL = 48;
+  const padR = 16;
+  const padT = 20;
+  const padB = 32;
 
-  const min=Math.min(...k.s), max=Math.max(...k.s);
-  const y=v=> (h-padB) - ((v-min)/(max-min || 1))*(h-padT-padB);
-  const step=(w-padL-padR)/(k.s.length-1);
+  dlgSpark.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  dlgSpark.innerHTML = "";
 
-  for(let i=0;i<4;i++){
-    const y0=padT+i*((h-padT-padB)/3);
-    const l=document.createElementNS("http://www.w3.org/2000/svg","line");
-    l.setAttribute("x1",padL);
-    l.setAttribute("x2",w-padR);
-    l.setAttribute("y1",y0);
-    l.setAttribute("y2",y0);
-    l.setAttribute("stroke","#22325c");
-    l.setAttribute("stroke-dasharray","3 4");
+  const min = Math.min(...k.s);
+  const max = Math.max(...k.s);
+  const y = (v) => (h - padB) - ((v - min) / (max - min || 1)) * (h - padT - padB);
+  const step = (w - padL - padR) / (k.s.length - 1);
+
+  for (let i = 0; i < 4; i++) {
+    const y0 = padT + i * ((h - padT - padB) / 3);
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", padL.toString());
+    l.setAttribute("x2", (w - padR).toString());
+    l.setAttribute("y1", y0.toString());
+    l.setAttribute("y2", y0.toString());
+    l.setAttribute("stroke", "#22325c");
+    l.setAttribute("stroke-dasharray", "3 4");
     dlgSpark.appendChild(l);
   }
 
   const ejemploHist = k.hist[DATA.periodosSelect[0]];
-  const meta=ejemploHist.meta;
-  const warn=ejemploHist.warn;
+  const meta = ejemploHist.meta;
+  const warn = ejemploHist.warn;
 
-  const mkLine=(val,col)=>{
-    const L=document.createElementNS("http://www.w3.org/2000/svg","line");
-    L.setAttribute("x1",padL);
-    L.setAttribute("x2",w-padR);
-    L.setAttribute("y1",y(val));
-    L.setAttribute("y2",y(val));
-    L.setAttribute("stroke",col);
-    L.setAttribute("stroke-width","1.2");
-    L.setAttribute("stroke-dasharray","6 6");
+  function mkLine(val, col) {
+    const L = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    L.setAttribute("x1", padL.toString());
+    L.setAttribute("x2", (w - padR).toString());
+    L.setAttribute("y1", y(val).toString());
+    L.setAttribute("y2", y(val).toString());
+    L.setAttribute("stroke", col);
+    L.setAttribute("stroke-width", "1.2");
+    L.setAttribute("stroke-dasharray", "6 6");
     return L;
-  };
-  dlgSpark.appendChild(mkLine(meta,"#16c172"));
-  dlgSpark.appendChild(mkLine(warn,"#ffbf3c"));
+  }
 
-  const yVals=[max,min];
-  yVals.forEach((val,idx)=>{
-    const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
-    txt.setAttribute("x",padL-10);
-    txt.setAttribute("y",y(val)+(idx===0?-4:10));
-    txt.setAttribute("text-anchor","end");
-    txt.setAttribute("fill","#a9b5d1");
-    txt.setAttribute("font-size","10");
-    txt.textContent=fmt(val,k.u);
+  dlgSpark.appendChild(mkLine(meta, "#16c172"));
+  dlgSpark.appendChild(mkLine(warn, "#ffbf3c"));
+
+  const yVals = [max, min];
+  yVals.forEach((val, idx) => {
+    const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    txt.setAttribute("x", (padL - 10).toString());
+    txt.setAttribute("y", (y(val) + (idx === 0 ? -4 : 10)).toString());
+    txt.setAttribute("text-anchor", "end");
+    txt.setAttribute("fill", "#a9b5d1");
+    txt.setAttribute("font-size", "10");
+    txt.textContent = fmt(val, k.u);
     dlgSpark.appendChild(txt);
   });
 
-  let d=`M ${padL} ${y(k.s[0]).toFixed(2)} `;
-  k.s.forEach((v,i)=> d+=`L ${(padL+i*step).toFixed(2)} ${y(v).toFixed(2)} `);
-  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("d",d);
-  path.setAttribute("fill","none");
-  path.setAttribute("stroke","#5aa9ff");
-  path.setAttribute("stroke-width","2.2");
+  let d = `M ${padL} ${y(k.s[0]).toFixed(2)} `;
+  k.s.forEach((v, i) => {
+    d += `L ${(padL + i * step).toFixed(2)} ${y(v).toFixed(2)} `;
+  });
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", d);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", "#5aa9ff");
+  path.setAttribute("stroke-width", "2.2");
   dlgSpark.appendChild(path);
 
-  PERIODOS_ALL.forEach((per,idx)=>{
-    const x=padL+idx*step;
-    const tick=document.createElementNS("http://www.w3.org/2000/svg","line");
-    tick.setAttribute("x1",x);
-    tick.setAttribute("x2",x);
-    tick.setAttribute("y1",h-padB);
-    tick.setAttribute("y2",h-padB+4);
-    tick.setAttribute("stroke","#47547c");
-    tick.setAttribute("stroke-width","0.8");
+  PERIODOS_ALL.forEach((per, idx) => {
+    const x = padL + idx * step;
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", x.toString());
+    tick.setAttribute("x2", x.toString());
+    tick.setAttribute("y1", (h - padB).toString());
+    tick.setAttribute("y2", (h - padB + 4).toString());
+    tick.setAttribute("stroke", "#47547c");
+    tick.setAttribute("stroke-width", "0.8");
     dlgSpark.appendChild(tick);
-    if(idx%2===0){
-      const t=document.createElementNS("http://www.w3.org/2000/svg","text");
-      t.setAttribute("x",x);
-      t.setAttribute("y",h-4);
-      t.setAttribute("text-anchor","middle");
-      t.setAttribute("fill","#a9b5d1");
-      t.setAttribute("font-size","9");
-      t.textContent=fmtPeriodo(per);
+
+    if (idx % 2 === 0) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", x.toString());
+      t.setAttribute("y", (h - 4).toString());
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("fill", "#a9b5d1");
+      t.setAttribute("font-size", "9");
+      t.textContent = fmtPeriodo(per);
       dlgSpark.appendChild(t);
     }
   });
 }
 
-function renderBreakdown(k,periodo){
-  dlgTbody.innerHTML="";
-  const h=k.hist[periodo];
-  const metas={meta:h.meta,warn:h.warn};
-  (k.br || []).forEach(r=>{
-    const pol=r.pol||k.pol||"up";
-    const st=state(pol,r.a,metas.meta,metas.warn);
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
+function renderBreakdown(k, periodo) {
+  dlgTbody.innerHTML = "";
+  const h = k.hist[periodo];
+  const metas = { meta: h.meta, warn: h.warn };
+  (k.br || []).forEach((r) => {
+    const pol = r.pol || k.pol || "up";
+    const st = state(pol, r.a, metas.meta, metas.warn);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
       <td>${r.seg}</td>
-      <td>${fmt(r.a,r.u||k.u)}</td>
-      <td>${fmt(metas.meta,r.u||k.u)}</td>
+      <td>${fmt(r.a, r.u || k.u)}</td>
+      <td>${fmt(metas.meta, r.u || k.u)}</td>
       <td><span class="pill ${st}">${st.toUpperCase()}</span></td>
     `;
     dlgTbody.appendChild(tr);
   });
 }
 
-function renderMonthTable(k){
-  dlgMonths.innerHTML="";
-  const table=document.createElement("table");
-  table.innerHTML=`
+function renderMonthTable(k) {
+  dlgMonths.innerHTML = "";
+  const table = document.createElement("table");
+  table.className = "table";
+  table.innerHTML = `
     <thead>
       <tr>
         <th>Período</th>
@@ -426,259 +490,266 @@ function renderMonthTable(k){
     </thead>
     <tbody></tbody>
   `;
-  const tb=table.querySelector("tbody");
+  const tb = table.querySelector("tbody");
   const ultimos12 = DATA.periodosAll.slice(-12);
-  ultimos12.forEach(per=>{
-    const h=k.hist[per];
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
+  ultimos12.forEach((per) => {
+    const h = k.hist[per];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
       <td>${fmtPeriodo(per)}</td>
-      <td>${fmt(h.a,k.u)}</td>
-      <td>${fmt(h.meta,k.u)}</td>
-      <td>${fmt(h.pres,k.u)}</td>
+      <td>${fmt(h.a, k.u)}</td>
+      <td>${fmt(h.meta, k.u)}</td>
+      <td>${fmt(h.pres, k.u)}</td>
     `;
     tb.appendChild(tr);
   });
   dlgMonths.appendChild(table);
 }
 
-/* ======================= MAPA CAUSA-EFECTO ENTRE KPIs ======================= */
-/* Ahora cada driver tiene referencia al KPI real y el color refleja su estado.  */
-/* Además se agregan relaciones intra-perspectiva en la lista textual.          */
+/* RELACIONES CAUSA EFECTO */
 
 const REL_EDGES = [
   {
-    from:"APR",
-    to:"PRO",
-    intra:false,
-    pos:[
-      {label:"Horas capacitación", kpi:"Horas de capacitación / persona"},
-      {label:"Ideas de mejora",   kpi:"Ideas de mejora implementadas"}
+    from: "APR",
+    to: "PRO",
+    intra: false,
+    pos: [
+      { label: "Horas de capacitación", kpi: "Horas de capacitación / persona" },
+      { label: "Ideas de mejora", kpi: "Ideas de mejora implementadas" }
     ],
-    neg:[
-      {label:"Cobertura de roles baja", kpi:"Cobertura de roles críticos"}
+    neg: [
+      { label: "Cobertura de roles baja", kpi: "Cobertura de roles críticos" }
     ]
   },
   {
-    from:"PRO",
-    to:"CLI",
-    intra:false,
-    pos:[
-      {label:"OEE",  kpi:"OEE"},
-      {label:"MTBF", kpi:"MTBF"}
+    from: "PRO",
+    to: "CLI",
+    intra: false,
+    pos: [
+      { label: "OEE", kpi: "OEE" },
+      { label: "MTBF", kpi: "MTBF" }
     ],
-    neg:[
-      {label:"Scrap", kpi:"Scrap"},
-      {label:"MTTR", kpi:"MTTR"}
+    neg: [
+      { label: "Scrap", kpi: "Scrap" },
+      { label: "MTTR", kpi: "MTTR" }
     ]
   },
   {
-    from:"CLI",
-    to:"FIN",
-    intra:false,
-    pos:[
-      {label:"OTIF", kpi:"OTIF"},
-      {label:"NPS",  kpi:"NPS"}
+    from: "CLI",
+    to: "FIN",
+    intra: false,
+    pos: [
+      { label: "OTIF", kpi: "OTIF" },
+      { label: "NPS", kpi: "NPS" }
     ],
-    neg:[
-      {label:"Reclamos",  kpi:"Reclamos por mil órdenes"},
-      {label:"Reacuerdos",kpi:"Tasa de reacuerdos"}
-    ]
-  },
-  /* Relaciones intra-perspectiva (solo se muestran en la lista textual) */
-  {
-    from:"PRO",
-    to:"PRO",
-    intra:true,
-    pos:[
-      {label:"OEE alto reduce Scrap", kpi:"OEE"},
-      {label:"Scrap controlado mejora MTBF", kpi:"Scrap"}
-    ],
-    neg:[
-      {label:"MTTR elevado tensiona el OEE", kpi:"MTTR"}
+    neg: [
+      { label: "Reclamos", kpi: "Reclamos por mil órdenes" },
+      { label: "Reacuerdos", kpi: "Tasa de reacuerdos" }
     ]
   },
   {
-    from:"CLI",
-    to:"CLI",
-    intra:true,
-    pos:[
-      {label:"OTIF y NPS fortalecen fidelidad", kpi:"OTIF"},
-      {label:"NPS alto reduce reclamos", kpi:"NPS"}
+    from: "PRO",
+    to: "PRO",
+    intra: true,
+    pos: [
+      { label: "OEE alto reduce scrap", kpi: "OEE" },
+      { label: "Scrap controlado mejora MTBF", kpi: "Scrap" }
     ],
-    neg:[
-      {label:"Reclamos recurrentes erosionan NPS", kpi:"Reclamos por mil órdenes"},
-      {label:"Reacuerdos afectan percepción de servicio", kpi:"Tasa de reacuerdos"}
+    neg: [
+      { label: "MTTR elevado tensiona el OEE", kpi: "MTTR" }
+    ]
+  },
+  {
+    from: "CLI",
+    to: "CLI",
+    intra: true,
+    pos: [
+      { label: "OTIF y NPS fortalecen fidelidad", kpi: "OTIF" },
+      { label: "NPS alto reduce reclamos", kpi: "NPS" }
+    ],
+    neg: [
+      { label: "Reclamos recurrentes erosionan NPS", kpi: "Reclamos por mil órdenes" },
+      { label: "Reacuerdos afectan percepción", kpi: "Tasa de reacuerdos" }
     ]
   }
 ];
 
-function drawMap(periodo){
-  const svg=$("#map");
-  svg.innerHTML="";
-  const W=800,H=260;
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+const svgMap = $("#map");
+const relList = $("#relList");
 
-  const g=document.createElementNS("http://www.w3.org/2000/svg","g");
-  svg.appendChild(g);
+function drawMap(periodo) {
+  svgMap.innerHTML = "";
+  const W = 800;
+  const H = 220;
+  svgMap.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
-  const nodes=[
-    {id:"APR",x:40,y:40,w:170,h:48,t:"Aprendizaje y Cultura"},
-    {id:"PRO",x:240,y:90,w:190,h:48,t:"Procesos Internos"},
-    {id:"CLI",x:470,y:140,w:170,h:48,t:"Cliente"},
-    {id:"FIN",x:660,y:190,w:170,h:48,t:"Finanzas"}
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  svgMap.appendChild(g);
+
+  const nodes = [
+    { id: "APR", x: 40, y: 30, w: 170, h: 48, t: "Aprendizaje y Cultura" },
+    { id: "PRO", x: 260, y: 80, w: 190, h: 48, t: "Procesos Internos" },
+    { id: "CLI", x: 500, y: 130, w: 170, h: 48, t: "Cliente" },
+    { id: "FIN", x: 690, y: 170, w: 170, h: 48, t: "Finanzas" }
   ];
 
-  const perspName = code => {
-    const p = DATA.perspectivas.find(pp=>pp.code===code);
+  function perspName(code) {
+    const p = DATA.perspectivas.find((pp) => pp.code === code);
     return p ? p.nombre : code;
-  };
-
-  function nstate(code){
-    const p=DATA.perspectivas.find(pp=>pp.code===code);
-    const greens=p.kpis.filter(k=>{
-      const h=k.hist[periodo];
-      return state(k.pol,h.a,h.meta,h.warn)==="good";
-    }).length;
-    const ratio=greens/p.kpis.length;
-    return ratio>=0.7?"good":(ratio>=0.4?"warn":"bad");
   }
 
-  function rect(n,cls){
-    const r=document.createElementNS("http://www.w3.org/2000/svg","rect");
-    r.setAttribute("x",n.x);
-    r.setAttribute("y",n.y);
-    r.setAttribute("width",n.w);
-    r.setAttribute("height",n.h);
-    r.setAttribute("rx","10");
-    r.setAttribute("fill","#0f1526");
-    r.setAttribute("stroke","#2a3b6b");
-    r.setAttribute("stroke-width","1.4");
+  function nstate(code) {
+    const p = DATA.perspectivas.find((pp) => pp.code === code);
+    const greens = p.kpis.filter((k) => {
+      const h = k.hist[periodo];
+      return state(k.pol, h.a, h.meta, h.warn) === "good";
+    }).length;
+    const ratio = greens / p.kpis.length;
+    if (ratio >= 0.7) return "good";
+    if (ratio >= 0.4) return "warn";
+    return "bad";
+  }
+
+  function rect(n, cls) {
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", n.x.toString());
+    r.setAttribute("y", n.y.toString());
+    r.setAttribute("width", n.w.toString());
+    r.setAttribute("height", n.h.toString());
+    r.setAttribute("rx", "10");
+    r.setAttribute("fill", "#0f1526");
+    r.setAttribute("stroke", "#2a3b6b");
+    r.setAttribute("stroke-width", "1.4");
     g.appendChild(r);
 
-    const text=document.createElementNS("http://www.w3.org/2000/svg","text");
-    text.setAttribute("x",n.x+n.w/2);
-    text.setAttribute("y",n.y+n.h/2+4);
-    text.setAttribute("text-anchor","middle");
-    text.setAttribute("fill","#eaf0ff");
-    text.setAttribute("font-size","12");
-    text.textContent=n.t;
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", (n.x + n.w / 2).toString());
+    text.setAttribute("y", (n.y + n.h / 2 + 4).toString());
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("fill", "#eaf0ff");
+    text.setAttribute("font-size", "12");
+    text.textContent = n.t;
     g.appendChild(text);
 
-    const badge=document.createElementNS("http://www.w3.org/2000/svg","circle");
-    badge.setAttribute("cx",n.x+n.w-10);
-    badge.setAttribute("cy",n.y+10);
-    badge.setAttribute("r","6");
-    badge.setAttribute("fill",cls==="good"?"#16c172":(cls==="warn"?"#ffbf3c":"#ff5d5d"));
+    const badge = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    badge.setAttribute("cx", (n.x + n.w - 10).toString());
+    badge.setAttribute("cy", (n.y + 10).toString());
+    badge.setAttribute("r", "6");
+    badge.setAttribute(
+      "fill",
+      cls === "good" ? "#16c172" : cls === "warn" ? "#ffbf3c" : "#ff5d5d"
+    );
     g.appendChild(badge);
   }
 
-  const defs=document.createElementNS("http://www.w3.org/2000/svg","defs");
-  const m=document.createElementNS("http://www.w3.org/2000/svg","marker");
-  m.id="arr";
-  m.setAttribute("viewBox","0 0 10 10");
-  m.setAttribute("refX","10");
-  m.setAttribute("refY","5");
-  m.setAttribute("markerWidth","6");
-  m.setAttribute("markerHeight","6");
-  m.setAttribute("orient","auto-start-reverse");
-  const pth=document.createElementNS("http://www.w3.org/2000/svg","path");
-  pth.setAttribute("d","M0 0 10 5 0 10z");
-  pth.setAttribute("fill","#5aa9ff");
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  const m = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+  m.id = "arr";
+  m.setAttribute("viewBox", "0 0 10 10");
+  m.setAttribute("refX", "10");
+  m.setAttribute("refY", "5");
+  m.setAttribute("markerWidth", "6");
+  m.setAttribute("markerHeight", "6");
+  m.setAttribute("orient", "auto-start-reverse");
+  const pth = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  pth.setAttribute("d", "M0 0 10 5 0 10z");
+  pth.setAttribute("fill", "#5aa9ff");
   m.appendChild(pth);
   defs.appendChild(m);
-  svg.appendChild(defs);
+  svgMap.appendChild(defs);
 
-  function arrow(from,to,edge){
-    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
-    line.setAttribute("x1",from.x+from.w);
-    line.setAttribute("y1",from.y+from.h/2);
-    line.setAttribute("x2",to.x);
-    line.setAttribute("y2",to.y+to.h/2);
-    line.setAttribute("stroke","#5aa9ff");
-    line.setAttribute("stroke-width","2");
-    line.setAttribute("marker-end","url(#arr)");
+  function arrow(from, to, edge) {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", (from.x + from.w).toString());
+    line.setAttribute("y1", (from.y + from.h / 2).toString());
+    line.setAttribute("x2", to.x.toString());
+    line.setAttribute("y2", (to.y + to.h / 2).toString());
+    line.setAttribute("stroke", "#5aa9ff");
+    line.setAttribute("stroke-width", "2");
+    line.setAttribute("marker-end", "url(#arr)");
     g.appendChild(line);
 
-    const mx=(from.x+from.w+to.x)/2;
-    const my=(from.y+from.h/2+to.y+to.h/2)/2;
+    const mx = (from.x + from.w + to.x) / 2;
+    const my = (from.y + from.h / 2 + to.y + to.h / 2) / 2;
 
-    const stPos=aggregateState(edge.pos,periodo);
-    const stNeg=aggregateState(edge.neg,periodo);
+    const stPos = aggregateState(edge.pos, periodo);
+    const stNeg = aggregateState(edge.neg, periodo);
 
-    const tPos=document.createElementNS("http://www.w3.org/2000/svg","text");
-    tPos.setAttribute("x",mx);
-    tPos.setAttribute("y",my-10);
-    tPos.setAttribute("text-anchor","middle");
-    tPos.setAttribute("fill",stateColor(stPos));
-    tPos.setAttribute("font-size","9.5");
-    tPos.textContent="+ "+edge.pos.map(d=>d.label).join(", ");
+    const tPos = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    tPos.setAttribute("x", mx.toString());
+    tPos.setAttribute("y", (my - 10).toString());
+    tPos.setAttribute("text-anchor", "middle");
+    tPos.setAttribute("fill", stateColor(stPos));
+    tPos.setAttribute("font-size", "9.5");
+    tPos.textContent = "+ " + edge.pos.map((d) => d.label).join(", ");
     g.appendChild(tPos);
 
-    const tNeg=document.createElementNS("http://www.w3.org/2000/svg","text");
-    tNeg.setAttribute("x",mx);
-    tNeg.setAttribute("y",my+14);
-    tNeg.setAttribute("text-anchor","middle");
-    tNeg.setAttribute("fill",stateColor(stNeg));
-    tNeg.setAttribute("font-size","9.5");
-    tNeg.textContent="- "+edge.neg.map(d=>d.label).join(", ");
+    const tNeg = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    tNeg.setAttribute("x", mx.toString());
+    tNeg.setAttribute("y", (my + 14).toString());
+    tNeg.setAttribute("text-anchor", "middle");
+    tNeg.setAttribute("fill", stateColor(stNeg));
+    tNeg.setAttribute("font-size", "9.5");
+    tNeg.textContent = "- " + edge.neg.map((d) => d.label).join(", ");
     g.appendChild(tNeg);
   }
 
-  const sAPR=nstate("APR");
-  const sPRO=nstate("PRO");
-  const sCLI=nstate("CLI");
-  const sFIN=nstate("FIN");
+  const sAPR = nstate("APR");
+  const sPRO = nstate("PRO");
+  const sCLI = nstate("CLI");
+  const sFIN = nstate("FIN");
 
-  rect(nodes[0],sAPR);
-  rect(nodes[1],sPRO);
-  rect(nodes[2],sCLI);
-  rect(nodes[3],sFIN);
+  rect(nodes[0], sAPR);
+  rect(nodes[1], sPRO);
+  rect(nodes[2], sCLI);
+  rect(nodes[3], sFIN);
 
-  const nodeById=id=>nodes.find(n=>n.id===id);
+  function nodeById(id) {
+    return nodes.find((n) => n.id === id);
+  }
 
-  /* Solo dibujamos flechas para relaciones entre perspectivas (no intra) */
-  REL_EDGES.filter(e=>!e.intra).forEach(e=>{
-    const from=nodeById(e.from);
-    const to=nodeById(e.to);
-    arrow(from,to,e);
+  REL_EDGES.filter((e) => !e.intra).forEach((e) => {
+    const from = nodeById(e.from);
+    const to = nodeById(e.to);
+    arrow(from, to, e);
   });
 
-  /* Lista textual de relaciones (incluye intra-perspectiva) */
-  const relList = $("#relList");
-  relList.innerHTML="";
-  REL_EDGES.forEach(e=>{
-    const row=document.createElement("div");
-    row.className="relRow";
+  /* lista textual de relaciones */
+
+  relList.innerHTML = "";
+  REL_EDGES.forEach((e) => {
+    const row = document.createElement("div");
+    row.className = "relRow";
     const fromName = perspName(e.from);
     const toName = perspName(e.to);
     const title = e.intra
       ? `${fromName} (relaciones internas)`
-      : `${fromName} → ${toName}`;
-    const titleDiv=document.createElement("div");
-    titleDiv.className="relTitle";
-    titleDiv.textContent=title;
+      : `${fromName} -> ${toName}`;
+    const titleDiv = document.createElement("div");
+    titleDiv.className = "relTitle";
+    titleDiv.textContent = title;
     row.appendChild(titleDiv);
 
-    const chipsDiv=document.createElement("div");
-    chipsDiv.className="relChips";
+    const chipsDiv = document.createElement("div");
+    chipsDiv.className = "relChips";
 
-    e.pos.forEach(d=>{
-      const st=getKPIStateForPeriod(d.kpi,periodo) || "warn";
-      const span=document.createElement("span");
-      span.className="chipPos";
-      span.style.borderColor=stateColor(st);
-      span.style.color=stateColor(st);
-      span.textContent=`+ ${d.label}`;
+    e.pos.forEach((d) => {
+      const st = getKPIStateForPeriod(d.kpi, periodo) || "warn";
+      const span = document.createElement("span");
+      span.className = "chipPos";
+      span.style.borderColor = stateColor(st);
+      span.style.color = stateColor(st);
+      span.textContent = "+ " + d.label;
       chipsDiv.appendChild(span);
     });
-    e.neg.forEach(d=>{
-      const st=getKPIStateForPeriod(d.kpi,periodo) || "warn";
-      const span=document.createElement("span");
-      span.className="chipNeg";
-      span.style.borderColor=stateColor(st);
-      span.style.color=stateColor(st);
-      span.textContent=`− ${d.label}`;
+
+    e.neg.forEach((d) => {
+      const st = getKPIStateForPeriod(d.kpi, periodo) || "warn";
+      const span = document.createElement("span");
+      span.className = "chipNeg";
+      span.style.borderColor = stateColor(st);
+      span.style.color = stateColor(st);
+      span.textContent = "- " + d.label;
       chipsDiv.appendChild(span);
     });
 
@@ -687,17 +758,64 @@ function drawMap(periodo){
   });
 }
 
-/* ======================= INTERACCIÓN GENERAL ======================= */
-function renderAll(){
-  const periodo=selPeriodo.value;
-  renderSummary(periodo);
-  renderBlocks(periodo,$("#q").value.trim());
-  drawMap(periodo);
+/* NARRATIVA EXPLICATIVA */
+
+function estadoPalabra(st) {
+  if (st === "good") return "favorable";
+  if (st === "warn") return "en alerta";
+  return "tensionado";
 }
 
-$("#btnUpd").addEventListener("click",renderAll);
-$("#q").addEventListener("input",e=>{
-  renderBlocks(selPeriodo.value,e.target.value.trim());
+function renderNarrative(periodo) {
+  narrativeDiv.innerHTML = "";
+  const titulo = document.createElement("h3");
+  titulo.textContent = "Lectura guiada del período seleccionado";
+  narrativeDiv.appendChild(titulo);
+
+  REL_EDGES.filter((e) => !e.intra).forEach((e) => {
+    const pFrom = DATA.perspectivas.find((p) => p.code === e.from);
+    const pTo = DATA.perspectivas.find((p) => p.code === e.to);
+
+    const stPos = aggregateState(e.pos, periodo);
+    const stNeg = aggregateState(e.neg, periodo);
+
+    const posNombres = e.pos.map((d) => d.label).join(", ");
+    const negNombres = e.neg.map((d) => d.label).join(", ");
+
+    const p = document.createElement("p");
+    p.textContent =
+      "Entre " +
+      pFrom.nombre +
+      " y " +
+      pTo.nombre +
+      " los indicadores impulsores positivos (" +
+      posNombres +
+      ") se encuentran en un estado " +
+      estadoPalabra(stPos) +
+      ", mientras que los indicadores que pueden presionar el resultado (" +
+      negNombres +
+      ") se encuentran " +
+      estadoPalabra(stNeg) +
+      ". Esto ayuda a interpretar cómo la capacidad y la estabilidad de " +
+      pFrom.nombre.toLowerCase() +
+      " se traducen en la experiencia del cliente y los resultados financieros.";
+    narrativeDiv.appendChild(p);
+  });
+}
+
+/* INTERACCIÓN GENERAL */
+
+function renderAll() {
+  const periodo = selPeriodo.value;
+  renderSummary(periodo);
+  renderBlocks(periodo, $("#q").value.trim());
+  drawMap(periodo);
+  renderNarrative(periodo);
+}
+
+$("#btnUpd").addEventListener("click", renderAll);
+$("#q").addEventListener("input", (e) => {
+  renderBlocks(selPeriodo.value, e.target.value.trim());
 });
 
 renderAll();
