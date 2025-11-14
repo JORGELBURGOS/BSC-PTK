@@ -75,12 +75,13 @@ function generaSerie(k){
   return arr;
 }
 
+/* Construye DATA principal */
 function buildData(){
   const grupos=[
     {code:"FIN",id:"fin",nombre:"Financiera"},
     {code:"CLI",id:"cli",nombre:"Cliente"},
-    {code:"PRO",id:"pro",nombre:"Procesos"},
-    {code:"APR",id:"apr",nombre:"Aprendizaje"},
+    {code:"PRO",id:"pro",nombre:"Procesos Internos"},
+    {code:"APR",id:"apr",nombre:"Aprendizaje y Crecimiento"},
     {code:"SUS",id:"sus",nombre:"Sostenibilidad"}
   ];
   const perspectivas=[];
@@ -152,7 +153,7 @@ const blocks={
   SUS:$("#sus .grid")
 };
 
-/* ======================= RENDER RESUMEN ======================= */
+/* ======================= RESUMEN POR PERSPECTIVA ======================= */
 DATA.periodosSelect.forEach(p=>{
   const opt=document.createElement("option");
   opt.value=p;
@@ -183,7 +184,7 @@ function renderSummary(periodo){
   });
 }
 
-/* ======================= RENDER BLOQUES ======================= */
+/* ======================= BLOQUES DE KPI ======================= */
 let currentCmp="mes";
 
 document.querySelectorAll("button.toggle").forEach(b=>{
@@ -419,6 +420,28 @@ function renderMonthTable(k){
 }
 
 /* ======================= MAPA CAUSA-EFECTO ENTRE KPIs ======================= */
+
+const REL_EDGES = [
+  {
+    from:"APR",
+    to:"PRO",
+    pos:["Horas capacitación","Ideas de mejora"],
+    neg:["Cobertura de roles baja"]
+  },
+  {
+    from:"PRO",
+    to:"CLI",
+    pos:["OEE","MTBF"],
+    neg:["Scrap","MTTR"]
+  },
+  {
+    from:"CLI",
+    to:"FIN",
+    pos:["OTIF","NPS"],
+    neg:["Reclamos","Reacuerdos"]
+  }
+];
+
 function drawMap(periodo){
   const svg=$("#map");
   svg.innerHTML="";
@@ -430,10 +453,15 @@ function drawMap(periodo){
 
   const nodes=[
     {id:"APR",x:40,y:40,w:170,h:48,t:"Aprendizaje y Cultura"},
-    {id:"PRO",x:240,y:90,w:170,h:48,t:"Procesos Internos"},
-    {id:"CLI",x:440,y:140,w:170,h:48,t:"Cliente"},
-    {id:"FIN",x:640,y:190,w:170,h:48,t:"Finanzas"}
+    {id:"PRO",x:240,y:90,w:190,h:48,t:"Procesos Internos"},
+    {id:"CLI",x:470,y:140,w:170,h:48,t:"Cliente"},
+    {id:"FIN",x:660,y:190,w:170,h:48,t:"Finanzas"}
   ];
+
+  const perspName = code => {
+    const p = DATA.perspectivas.find(pp=>pp.code===code);
+    return p ? p.nombre : code;
+  };
 
   function nstate(code){
     const p=DATA.perspectivas.find(pp=>pp.code===code);
@@ -461,7 +489,7 @@ function drawMap(periodo){
     text.setAttribute("x",n.x+n.w/2);
     text.setAttribute("y",n.y+n.h/2+4);
     text.setAttribute("text-anchor","middle");
-    text.setAttribute("fill","var(--ink)");
+    text.setAttribute("fill","#eaf0ff");
     text.setAttribute("font-size","12");
     text.textContent=n.t;
     g.appendChild(text);
@@ -533,34 +561,31 @@ function drawMap(periodo){
   rect(nodes[2],sCLI);
   rect(nodes[3],sFIN);
 
-  const edges=[
-    {
-      from:"APR",
-      to:"PRO",
-      pos:["Horas capacitación","Ideas de mejora"],
-      neg:["Cobertura de roles baja"]
-    },
-    {
-      from:"PRO",
-      to:"CLI",
-      pos:["OEE","MTBF"],
-      neg:["Scrap","MTTR"]
-    },
-    {
-      from:"CLI",
-      to:"FIN",
-      pos:["OTIF","NPS"],
-      neg:["Reclamos","Reacuerdos"]
-    }
-  ];
-
   const nodeById=id=>nodes.find(n=>n.id===id);
 
-  edges.forEach(e=>{
+  REL_EDGES.forEach(e=>{
     const from=nodeById(e.from);
     const to=nodeById(e.to);
     const cls = e.from==="APR"?sAPR:(e.from==="PRO"?sPRO:sCLI);
     arrow(from,to,cls,e);
+  });
+
+  /* Lista textual de relaciones bajo el mapa */
+  const relList = $("#relList");
+  relList.innerHTML="";
+  REL_EDGES.forEach(e=>{
+    const row=document.createElement("div");
+    row.className="relRow";
+    const fromName = perspName(e.from);
+    const toName = perspName(e.to);
+    row.innerHTML = `
+      <div class="relTitle">${fromName} → ${toName}</div>
+      <div class="relChips">
+        ${e.pos.map(x=>`<span class="chipPos">+ ${x}</span>`).join("")}
+        ${e.neg.map(x=>`<span class="chipNeg">− ${x}</span>`).join("")}
+      </div>
+    `;
+    relList.appendChild(row);
   });
 }
 
